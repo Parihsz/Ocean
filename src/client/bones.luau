@@ -1,6 +1,4 @@
-local Bones = {}
-
-function Bones.CollectBones(plane: Model)
+local function CollectBones(plane: Model)
 	local bones = {}
 
 	for _, obj in plane:GetChildren() do
@@ -16,7 +14,7 @@ function Bones.CollectBones(plane: Model)
 	return bones
 end
 
-function Bones.GetBasePositions(bones: { Bone })
+local function GetBasePositions(bones: { Bone })
 	local basePositions = {}
 
 	for _, bone in bones do
@@ -27,4 +25,7 @@ function Bones.GetBasePositions(bones: { Bone })
 	return basePositions
 end
 
-return Bones
+return {
+	CollectBones = CollectBones,
+	GetBasePositions = GetBasePositions,
+}
