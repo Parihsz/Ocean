@@ -1,0 +1,14 @@
+{
+  "name": "Ocean",
+  "tree": {
+    "$className": "DataModel",
+    "StarterPlayer": {
+      "StarterPlayerScripts": {
+        "Client": {
+          "$path": "src/client"
+        }
+      }
+    }
+    
+  }
+}
