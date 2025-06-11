@@ -1,5 +1,7 @@
 # Ocean
-https://github.com/user-attachments/assets/117a120a-6e10-4bbb-bf43-1380f233d74d
+https://github.com/user-attachments/assets/bfde7ecb-84ce-4c3a-8159-4e576294c905
+
+
 
 ## Optimizations
 * Frustum Culling
