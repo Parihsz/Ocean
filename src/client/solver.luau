@@ -12,8 +12,6 @@ local NEAR_RADIUS = Config.NEAR_RADIUS
 local FAR_FLATTEN_START = Config.FAR_FLATTEN_START
 local GLOBAL_TIME_SCALE = Config.GLOBAL_TIME_SCALE
 
-local Camera = workspace.CurrentCamera
-
 local FOV = 0.4
 
 local NearChop = Config.NearChop
