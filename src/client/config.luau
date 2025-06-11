@@ -1,3 +1,4 @@
+--!strict
 local Types = require(script.Parent.types)
 
 export type Wave = Types.Wave
@@ -130,4 +131,4 @@ Config.NearChop = {
 	},
 } :: { Wave }
 
-return Config
+return Config::Types.Config
