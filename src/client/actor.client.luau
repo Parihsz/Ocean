@@ -34,11 +34,12 @@ ACTOR:BindToMessageParallel("solve", function(time)
 	if not Plane then
 		return
 	end
-	local timeNow = Solver.GetTimeNow(time)
-	local CameraCFrame = CurrentCamera.CFrame
 
-	local cameraPosition: vector = CameraCFrame.Position :: any
-	local cameraDirection: vector = CameraCFrame.LookVector :: any
+	local timeNow = Solver.GetTimeNow(time)
+	local cameraCFrame = CurrentCamera.CFrame
+
+	local cameraPosition: vector = cameraCFrame.Position :: any
+	local cameraDirection: vector = cameraCFrame.LookVector :: any
 	local transforms: { vector | false } = table.create(#Bones)
 
 	debug.profilebegin("Solver.CalculateTransforms")

@@ -1,5 +1,3 @@
-local Handler = {}
-
 local Actors: { Actor } = {}
 
 local ACTOR_COUNT = 8
@@ -9,16 +7,25 @@ local BoneMapper = require(script.Parent.bones)
 
 local Types = require(script.Parent.types)
 
-local Running = false
+local running = false
+local last = 0
 
-function Handler.SetPlane(plane: Model, config: Types.Config?)
+local function Start()
+	running = true
+end
+
+local function Stop()
+	running = false
+end
+
+local function SetPlane(plane: Model, config: Types.Config?)
 	config = config or Config
 	if #Actors == 0 then
 		for i = 1, ACTOR_COUNT do
 			local actor = Instance.new("Actor")
 			actor.Name = "WaveActor_" .. i
 			actor.Parent = script
-			script.Parent.actorScript:Clone().Parent = actor :: any
+			script.Parent.actor:Clone().Parent = actor :: any
 			Actors[i] = actor
 		end
 	end
@@ -28,6 +35,7 @@ function Handler.SetPlane(plane: Model, config: Types.Config?)
 	local bonesPerActor = math.ceil(#bones / ACTOR_COUNT)
 	local boneIndex = 1
 	local splitBones = {}
+
 	for i = 1, ACTOR_COUNT do
 		local boneActor = {}
 		splitBones[i] = boneActor
@@ -49,16 +57,8 @@ function Handler.SetPlane(plane: Model, config: Types.Config?)
 	end)
 end
 
-function Handler.Start()
-	Running = true
-end
-
-function Handler.Stop()
-	Running = false
-end
-local last = 0
 game:GetService("RunService").Heartbeat:Connect(function()
-	if not Running then
+	if not running then
 		return
 	end
 	local now = os.clock()
@@ -66,10 +66,13 @@ game:GetService("RunService").Heartbeat:Connect(function()
 		return
 	end
 	last = now
-	local timeNow = os.clock()
-	for i, actor in Actors do
-		actor:SendMessage("solve", timeNow)
+	for _, actor in Actors do
+		actor:SendMessage("solve", now)
 	end
 end)
 
-return Handler
+return {
+	SetPlane = SetPlane,
+	Start = Start,
+	Stop = Stop,
+}
