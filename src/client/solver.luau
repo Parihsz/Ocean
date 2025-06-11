@@ -118,12 +118,7 @@ local function CalculateWaveOffset(wave: Wave, position: vector, time: number, a
 	local effectiveAmplitude = wave.amplitude * amplitudeMultiplier
 	local horizontalDisplacement = wave.directionUnit * wave.steepness * effectiveAmplitude * cosTheta
 
-	local flow = wave.directionUnit * effectiveAmplitude * 0.25 * sinTheta
-	return vector.create(
-		horizontalDisplacement.x + flow.x,
-		effectiveAmplitude * sinTheta,
-		horizontalDisplacement.z + flow.z
-	)
+	return vector.create(horizontalDisplacement.x, effectiveAmplitude * sinTheta, horizontalDisplacement.z)
 end
 
 local function PointIFrust(point: vector, cameraLocation: vector, cameraDirection): boolean
