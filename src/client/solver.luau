@@ -14,7 +14,7 @@ local GLOBAL_TIME_SCALE = Config.GLOBAL_TIME_SCALE
 
 local Camera = workspace.CurrentCamera
 
-local FOV = .4
+local FOV = 0.4
 
 local NearChop = Config.NearChop
 local MidRollers = Config.MidRollers
@@ -24,7 +24,7 @@ local StartTime = os.clock()
 
 type Wave = Types.Wave
 
-local function SetConfig(config:Types.Config)
+local function SetConfig(config: Types.Config)
 	GRAVITY = config.GRAVITY
 	PER_WAVE_JITTER = config.PER_WAVE_JITTER
 	NOISE_SCALE = config.NOISE_SCALE
@@ -56,8 +56,8 @@ local function PrepareWave(wave: Wave)
 	wave.timeJitter = 1 + (math.random() * 2 - 1) * PER_WAVE_JITTER
 end
 
-local function GetTimeNow(timeToUse:number?): number
-	return ((timeToUse or os.clock())- StartTime) * GLOBAL_TIME_SCALE
+local function GetTimeNow(timeToUse: number?): number
+	return ((timeToUse or os.clock()) - StartTime) * GLOBAL_TIME_SCALE
 end
 
 local function PrepareWaves(waveList): ()
@@ -73,7 +73,6 @@ local function Prepare(time: number)
 	PrepareWaves(MidRollers)
 	PrepareWaves(NearChop)
 end
-
 
 --we applying quintic smoothstep (https://en.wikipedia.org/wiki/Smoothstep) to blend the wave height based on distance.
 local function SmoothStep(t: number): number
@@ -121,25 +120,29 @@ local function CalculateWaveOffset(wave: Wave, position: vector, time: number, a
 	local effectiveAmplitude = wave.amplitude * amplitudeMultiplier
 	local horizontalDisplacement = wave.directionUnit * wave.steepness * effectiveAmplitude * cosTheta
 
-	return vector.create(horizontalDisplacement.x, effectiveAmplitude * sinTheta, horizontalDisplacement.z)
+	local flow = wave.directionUnit * effectiveAmplitude * 0.25 * sinTheta
+	return vector.create(
+		horizontalDisplacement.x + flow.x,
+		effectiveAmplitude * sinTheta,
+		horizontalDisplacement.z + flow.z
+	)
 end
 
-local function pointIFrust(point: vector, cameraLoc: vector,cameraDir): boolean
-	return vector.dot(vector.normalize(point-cameraLoc), cameraDir) > FOV
-
+local function PointIFrust(point: vector, cameraLocation: vector, cameraDirection): boolean
+	return vector.dot(vector.normalize(point - cameraLocation), cameraDirection) > FOV
 end
 
-
-local function calculateTransform(basePosition: vector, timeNow: number, cameraLoc:vector,cameraDir):vector|false
-	if not pointIFrust(basePosition, cameraLoc, cameraDir) then
+local function CalculateTransform(
+	basePosition: vector,
+	timeNow: number,
+	cameraLocation: vector,
+	cameraDirection
+): vector | false
+	if not PointIFrust(basePosition, cameraLocation, cameraDirection) then
 		return false
 	end
-	local noise = math.noise(
-		basePosition.x * NOISE_SCALE,
-		timeNow * NOISE_TIME_SCALE,
-		basePosition.z * NOISE_SCALE
-	)
-	local distance = vector.magnitude(basePosition - cameraLoc)
+	local noise = math.noise(basePosition.x * NOISE_SCALE, timeNow * NOISE_TIME_SCALE, basePosition.z * NOISE_SCALE)
+	local distance = vector.magnitude(basePosition - cameraLocation)
 	local amplitude = 1 + noise * NOISE_CONTRAST
 	local offset = Vector3.zero
 
@@ -176,6 +179,6 @@ return {
 	FarDamp = FarDistanceDamping,
 	SetConfig = SetConfig,
 	Prepare = Prepare,
-	CalculateTransform = calculateTransform,
+	CalculateTransform = CalculateTransform,
 	GetTimeNow = GetTimeNow,
 }

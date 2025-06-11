@@ -2,17 +2,17 @@ local Handler = {}
 
 local Actors: { Actor } = {}
 
-local ACTOR_COUNT = 3
+local ACTOR_COUNT = 8
 
 local Config = require(script.Parent.config)
 local BoneMapper = require(script.Parent.bones)
-local Solver = require(script.Parent.solver)
+
 local Types = require(script.Parent.types)
 
 local Running = false
 
-function Handler.SetPlane(plane: Model,config:Types.Config?)
-    config = config or Config
+function Handler.SetPlane(plane: Model, config: Types.Config?)
+	config = config or Config
 	if #Actors == 0 then
 		for i = 1, ACTOR_COUNT do
 			local actor = Instance.new("Actor")
@@ -44,23 +44,28 @@ function Handler.SetPlane(plane: Model,config:Types.Config?)
 	task.delay(0.1, function()
 		local clockTime = os.clock()
 		for i, actor in Actors do
-			actor:SendMessage("INIT", clockTime, plane, splitBones[i],config)
+			actor:SendMessage("INIT", clockTime, plane, splitBones[i], config)
 		end
 	end)
 end
 
 function Handler.Start()
-    Running = true
+	Running = true
 end
 
 function Handler.Stop()
-    Running = false
+	Running = false
 end
-
+local last = 0
 game:GetService("RunService").Heartbeat:Connect(function()
 	if not Running then
 		return
 	end
+	local now = os.clock()
+	if now - last < 1 / 60 then
+		return
+	end
+	last = now
 	local timeNow = os.clock()
 	for i, actor in Actors do
 		actor:SendMessage("solve", timeNow)
