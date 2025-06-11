@@ -2,7 +2,42 @@
 local Config = require(script.Parent.config)
 local Types = require(script.Parent.types)
 
+local GRAVITY = Config.GRAVITY
+local PER_WAVE_JITTER = Config.PER_WAVE_JITTER
+local NOISE_SCALE = Config.NOISE_SCALE
+local NOISE_TIME_SCALE = Config.NOISE_TIME_SCALE
+local NOISE_CONTRAST = Config.NOISE_CONTRAST
+local MID_RADIUS = Config.MID_RADIUS
+local NEAR_RADIUS = Config.NEAR_RADIUS
+local FAR_FLATTEN_START = Config.FAR_FLATTEN_START
+local GLOBAL_TIME_SCALE = Config.GLOBAL_TIME_SCALE
+
+local Camera = workspace.CurrentCamera
+
+local FOV = .4
+
+local NearChop = Config.NearChop
+local MidRollers = Config.MidRollers
+local LongSwells = Config.LongSwells
+
+local StartTime = os.clock()
+
 type Wave = Types.Wave
+
+local function SetConfig(config:Types.Config)
+	GRAVITY = config.GRAVITY
+	PER_WAVE_JITTER = config.PER_WAVE_JITTER
+	NOISE_SCALE = config.NOISE_SCALE
+	NOISE_TIME_SCALE = config.NOISE_TIME_SCALE
+	NOISE_CONTRAST = config.NOISE_CONTRAST
+	MID_RADIUS = config.MID_RADIUS
+	NEAR_RADIUS = config.NEAR_RADIUS
+	FAR_FLATTEN_START = config.FAR_FLATTEN_START
+	GLOBAL_TIME_SCALE = config.GLOBAL_TIME_SCALE
+	NearChop = config.NearChop
+	MidRollers = config.MidRollers
+	LongSwells = config.LongSwells
+end
 
 local function PrepareWave(wave: Wave)
 	--in this function, we precompute wave properties for optimization purposes.
@@ -16,9 +51,13 @@ local function PrepareWave(wave: Wave)
 
 	wave.kVector = directionUnit * waveNumber
 	wave.directionUnit = directionUnit
-	wave.angularFrequency = math.sqrt(Config.GRAVITY * waveNumber)
+	wave.angularFrequency = math.sqrt(GRAVITY * waveNumber)
 	wave.phaseOffset = phase or 0
-	wave.timeJitter = 1 + (math.random() * 2 - 1) * Config.PER_WAVE_JITTER
+	wave.timeJitter = 1 + (math.random() * 2 - 1) * PER_WAVE_JITTER
+end
+
+local function GetTimeNow(timeToUse:number?): number
+	return ((timeToUse or os.clock())- StartTime) * GLOBAL_TIME_SCALE
 end
 
 local function PrepareWaves(waveList): ()
@@ -26,6 +65,15 @@ local function PrepareWaves(waveList): ()
 		PrepareWave(wave)
 	end
 end
+
+local function Prepare(time: number)
+	StartTime = time
+	math.randomseed(time)
+	PrepareWaves(LongSwells)
+	PrepareWaves(MidRollers)
+	PrepareWaves(NearChop)
+end
+
 
 --we applying quintic smoothstep (https://en.wikipedia.org/wiki/Smoothstep) to blend the wave height based on distance.
 local function SmoothStep(t: number): number
@@ -45,10 +93,10 @@ local function DistanceBlendWeight(distance: number, innerRadius: number, outerR
 end
 
 local function FarDistanceDamping(distance: number): number
-	if distance <= Config.FAR_FLATTEN_START then
+	if distance <= FAR_FLATTEN_START then
 		return 1
 	end
-	local t = (distance - Config.FAR_FLATTEN_START) / Config.FAR_FLATTEN_START
+	local t = (distance - FAR_FLATTEN_START) / FAR_FLATTEN_START
 	return 1 / (1 + 4 * t * t)
 end
 
@@ -76,9 +124,58 @@ local function CalculateWaveOffset(wave: Wave, position: vector, time: number, a
 	return vector.create(horizontalDisplacement.x, effectiveAmplitude * sinTheta, horizontalDisplacement.z)
 end
 
+local function pointIFrust(point: vector, cameraLoc: vector,cameraDir): boolean
+	return vector.dot(vector.normalize(point-cameraLoc), cameraDir) > FOV
+
+end
+
+
+local function calculateTransform(basePosition: vector, timeNow: number, cameraLoc:vector,cameraDir):vector|false
+	if not pointIFrust(basePosition, cameraLoc, cameraDir) then
+		return false
+	end
+	local noise = math.noise(
+		basePosition.x * NOISE_SCALE,
+		timeNow * NOISE_TIME_SCALE,
+		basePosition.z * NOISE_SCALE
+	)
+	local distance = vector.magnitude(basePosition - cameraLoc)
+	local amplitude = 1 + noise * NOISE_CONTRAST
+	local offset = Vector3.zero
+
+	--basically we get the bone's base positon and distance to the camera to calculate the wave type
+	--long swells apply uniformyl across all the bones.
+	--mid rollers fade based on camera distance
+	--chop waves has a steepness boost
+
+	--unfortunate vector3 and vector types are not compatible, so we have to cast them :(
+	for _, wave in LongSwells do
+		offset += (CalculateWaveOffset(wave, basePosition, timeNow, amplitude) :: any) :: Vector3
+	end
+
+	local midW = DistanceBlendWeight(distance, MID_RADIUS, MID_RADIUS * 1.8)
+	if midW > 0 then
+		for _, wave in MidRollers do
+			offset += (CalculateWaveOffset(wave, basePosition, timeNow, amplitude * midW) :: any) :: Vector3
+		end
+	end
+
+	local nearW = DistanceBlendWeight(distance, NEAR_RADIUS, MID_RADIUS)
+	if nearW > 0 then
+		for _, wave in NearChop do
+			offset += (CalculateWaveOffset(wave, basePosition, timeNow, amplitude * nearW) :: any) :: Vector3
+		end
+	end
+	return offset * FarDistanceDamping(distance) :: any
+end
+
 return {
 	PrepareWaves = PrepareWaves,
 	EvaluateWave = CalculateWaveOffset,
 	BlendWeight = DistanceBlendWeight,
 	FarDamp = FarDistanceDamping,
+	SetConfig = SetConfig,
+	Prepare = Prepare,
+	CalculateTransform = calculateTransform,
+	GetTimeNow = GetTimeNow,
 }
