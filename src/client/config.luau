@@ -6,7 +6,7 @@ export type Wave = Types.Wave
 local Config = {}
 
 Config.GRAVITY = 9.81
-Config.GLOBAL_TIME_SCALE = 0.42
+Config.GLOBAL_TIME_SCALE = 1.2
 
 Config.NEAR_RADIUS = 100
 Config.MID_RADIUS = 400
@@ -15,7 +15,7 @@ Config.FAR_FLATTEN_START = 1000
 Config.PER_WAVE_JITTER = 0.08
 Config.NOISE_SCALE = 0.045
 Config.NOISE_CONTRAST = 0.9
-Config.NOISE_TIME_SCALE = 0.03
+Config.NOISE_TIME_SCALE = 0.1
 
 Config.LongSwells = {
 	{
