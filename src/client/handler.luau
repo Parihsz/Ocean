@@ -67,7 +67,9 @@ game:GetService("RunService").Heartbeat:Connect(function()
 	end
 	last = now
 	for _, actor in Actors do
-		actor:SendMessage("solve", now)
+		task.defer(function()
+			actor:SendMessage("solve", now)
+		end)
 	end
 end)
 
